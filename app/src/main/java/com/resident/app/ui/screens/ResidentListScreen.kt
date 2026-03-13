@@ -139,11 +139,15 @@ fun ResidentItem(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("性别: ${resident.gender}")
-            Text("年龄: ${resident.age}")
-            Text("职业: ${resident.occupation}")
-            Text("电话: ${resident.phone}")
-            Text("地址: ${resident.address}")
+                        Text("性别: ${resident.gender.ifEmpty { "未填写" }}")
+            if (resident.birthDate.isNotEmpty()) {
+                Text("出生日期: ${resident.birthDate}  年龄: ${resident.age}岁")
+            } else if (resident.age > 0) {
+                Text("年龄: ${resident.age}岁")
+            }
+            if (resident.occupation.isNotEmpty()) Text("职业: ${resident.occupation}")
+            if (resident.phone.isNotEmpty()) Text("电话: ${resident.phone}")
+            if (resident.address.isNotEmpty()) Text("地址: ${resident.address}")
         }
     }
 
@@ -168,3 +172,4 @@ fun ResidentItem(
         )
     }
 }
+
