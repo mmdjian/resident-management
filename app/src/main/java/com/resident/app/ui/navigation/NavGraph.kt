@@ -1,20 +1,23 @@
 package com.resident.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.resident.app.data.entity.Resident
 import com.resident.app.data.export.ExcelExporter
 import com.resident.app.ui.screens.AddEditResidentScreen
+import com.resident.app.ui.screens.LoginScreen
 import com.resident.app.ui.screens.ResidentListScreen
 import com.resident.app.ui.screens.StatisticsScreen
 import com.resident.app.ui.viewmodel.ResidentViewModel
 import com.resident.app.ui.viewmodel.StatisticsViewModel
 
 sealed class Screen(val route: String) {
+    object Login : Screen("login")
     object ResidentList : Screen("resident_list")
     object AddResident : Screen("add_resident")
     object EditResident : Screen("edit_resident/{residentId}") {
@@ -32,8 +35,18 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.ResidentList.route
+        startDestination = Screen.Login.route
     ) {
+        composable(Screen.Login.route) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(Screen.ResidentList.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.ResidentList.route) {
             ResidentListScreen(
                 viewModel = viewModel,
@@ -65,12 +78,13 @@ fun NavGraph(
         composable(
             route = Screen.EditResident.route,
             arguments = listOf(navArgument("residentId") { type = NavType.LongType })
-        ) {
-            val residentId = it.arguments?.getLong("residentId") ?: return@composable
-            // 这里需要从 ViewModel 获取居民信息
+        ) { backStackEntry ->
+            val residentId = backStackEntry.arguments?.getLong("residentId") ?: return@composable
+            val residentList by viewModel.residents.collectAsState(initial = emptyList())
+            val resident = residentList.find { it.id == residentId }
             AddEditResidentScreen(
                 viewModel = viewModel,
-                resident = null, // TODO: 从 ViewModel 获取
+                resident = resident,
                 onBack = {
                     navController.popBackStack()
                 }
