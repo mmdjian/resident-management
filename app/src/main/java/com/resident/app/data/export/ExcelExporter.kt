@@ -1,9 +1,9 @@
 package com.resident.app.data.export
 
 import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import android.os.Environment
 import com.resident.app.data.entity.Resident
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
@@ -21,7 +21,7 @@ class ExcelExporter @Inject constructor(
 
             // 创建表头
             val headerRow = sheet.createRow(0)
-            val headers = arrayOf("ID", "姓名", "性别", "年龄", "职业", "电话", "地址", "创建时间")
+            val headers = arrayOf("ID", "姓名", "性别", "出生年月日", "年龄", "职业", "电话", "地址", "创建时间")
             headers.forEachIndexed { index, header ->
                 headerRow.createCell(index).setCellValue(header)
             }
@@ -32,11 +32,12 @@ class ExcelExporter @Inject constructor(
                 row.createCell(0).setCellValue(resident.id.toDouble())
                 row.createCell(1).setCellValue(resident.name)
                 row.createCell(2).setCellValue(resident.gender)
-                row.createCell(3).setCellValue(resident.age.toDouble())
-                row.createCell(4).setCellValue(resident.occupation)
-                row.createCell(5).setCellValue(resident.phone)
-                row.createCell(6).setCellValue(resident.address)
-                row.createCell(7).setCellValue(resident.createdAt.toString())
+                row.createCell(3).setCellValue(resident.birthDate)
+                row.createCell(4).setCellValue(resident.age.toDouble())
+                row.createCell(5).setCellValue(resident.occupation)
+                row.createCell(6).setCellValue(resident.phone)
+                row.createCell(7).setCellValue(resident.address)
+                row.createCell(8).setCellValue(resident.createdAt.toString())
             }
 
             // 保存文件
@@ -54,6 +55,3 @@ class ExcelExporter @Inject constructor(
         }
     }
 }
-
-
-
