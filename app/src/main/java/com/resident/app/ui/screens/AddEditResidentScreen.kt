@@ -1,14 +1,22 @@
 package com.resident.app.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.resident.app.data.entity.Resident
 import com.resident.app.ui.viewmodel.ResidentViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,13 +27,39 @@ fun AddEditResidentScreen(
 ) {
     var name by remember { mutableStateOf(resident?.name ?: "") }
     var gender by remember { mutableStateOf(resident?.gender ?: "") }
-    var age by remember { mutableStateOf(resident?.age?.toString() ?: "") }
+    var birthDate by remember { mutableStateOf(resident?.birthDate ?: "") }
+    var age by remember { mutableStateOf(
+        if (resident?.birthDate?.isNotEmpty() == true) ""
+        else resident?.age?.takeIf { it > 0 }?.toString() ?: ""
+    ) }
     var occupation by remember { mutableStateOf(resident?.occupation ?: "") }
     var phone by remember { mutableStateOf(resident?.phone ?: "") }
     var address by remember { mutableStateOf(resident?.address ?: "") }
 
+    var genderExpanded by remember { mutableStateOf(false) }
+    val genderOptions = listOf("男", "女")
+
     val isLoading by viewModel.isLoading.collectAsState()
     val message by viewModel.message.collectAsState()
+
+    val context = LocalContext.current
+
+    fun calcAge(dateStr: String): Int {
+        return try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val birth = LocalDate.parse(dateStr, formatter)
+            ChronoUnit.YEARS.between(birth, LocalDate.now()).toInt()
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    val displayAge = if (birthDate.isNotEmpty()) {
+        val a = calcAge(birthDate)
+        if (a > 0) "$a 岁" else ""
+    } else {
+        age
+    }
 
     LaunchedEffect(message) {
         message?.let {
@@ -52,7 +86,8 @@ fun AddEditResidentScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -63,27 +98,82 @@ fun AddEditResidentScreen(
                 singleLine = true
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ExposedDropdownMenuBox(
+                expanded = genderExpanded,
+                onExpandedChange = { genderExpanded = !genderExpanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
                     value = gender,
-                    onValueChange = { gender = it },
+                    onValueChange = {},
+                    readOnly = true,
                     label = { Text("性别") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    placeholder = { Text("男/女") }
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    placeholder = { Text("请选择") }
                 )
-
-                OutlinedTextField(
-                    value = age,
-                    onValueChange = { age = it },
-                    label = { Text("年龄") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
+                ExposedDropdownMenu(
+                    expanded = genderExpanded,
+                    onDismissRequest = { genderExpanded = false }
+                ) {
+                    genderOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                gender = option
+                                genderExpanded = false
+                            }
+                        )
+                    }
+                }
             }
+
+            OutlinedTextField(
+                value = birthDate,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("出生年月日") },
+                placeholder = { Text("点击选择日期") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        val today = LocalDate.now()
+                        val initYear = if (birthDate.isNotEmpty()) {
+                            try { birthDate.substring(0, 4).toInt() } catch (e: Exception) { today.year - 30 }
+                        } else today.year - 30
+                        val initMonth = if (birthDate.length >= 7) {
+                            try { birthDate.substring(5, 7).toInt() - 1 } catch (e: Exception) { 0 }
+                        } else 0
+                        val initDay = if (birthDate.length == 10) {
+                            try { birthDate.substring(8, 10).toInt() } catch (e: Exception) { 1 }
+                        } else 1
+
+                        DatePickerDialog(context, { _, year, month, day ->
+                            birthDate = "%04d-%02d-%02d".format(year, month + 1, day)
+                            age = ""
+                        }, initYear, initMonth, initDay).show()
+                    }) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "选择日期")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = displayAge,
+                onValueChange = {
+                    if (birthDate.isEmpty()) {
+                        age = it.filter { c -> c.isDigit() }
+                    }
+                },
+                label = { Text(if (birthDate.isNotEmpty()) "年龄（自动计算）" else "年龄") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                readOnly = birthDate.isNotEmpty(),
+                enabled = birthDate.isEmpty()
+            )
 
             OutlinedTextField(
                 value = occupation,
@@ -110,40 +200,43 @@ fun AddEditResidentScreen(
                 maxLines = 3
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {
-                    if (name.isNotBlank() && gender.isNotBlank() && age.isNotBlank()) {
-                        val newResident = if (resident == null) {
-                            Resident(
-                                name = name,
-                                gender = gender,
-                                age = age.toInt(),
-                                occupation = occupation,
-                                phone = phone,
-                                address = address
-                            )
-                        } else {
-                            resident.copy(
-                                name = name,
-                                gender = gender,
-                                age = age.toInt(),
-                                occupation = occupation,
-                                phone = phone,
-                                address = address
-                            )
-                        }
+                    val finalAge = if (birthDate.isNotEmpty()) calcAge(birthDate)
+                                   else age.toIntOrNull() ?: 0
+                    val newResident = if (resident == null) {
+                        Resident(
+                            name = name,
+                            gender = gender,
+                            birthDate = birthDate,
+                            age = finalAge,
+                            occupation = occupation,
+                            phone = phone,
+                            address = address
+                        )
+                    } else {
+                        resident.copy(
+                            name = name,
+                            gender = gender,
+                            birthDate = birthDate,
+                            age = finalAge,
+                            occupation = occupation,
+                            phone = phone,
+                            address = address,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    }
 
-                        if (resident == null) {
-                            viewModel.insertResident(newResident)
-                        } else {
-                            viewModel.updateResident(newResident)
-                        }
+                    if (resident == null) {
+                        viewModel.insertResident(newResident)
+                    } else {
+                        viewModel.updateResident(newResident)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = isLoading.not()
+                enabled = name.isNotBlank() && !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -153,6 +246,14 @@ fun AddEditResidentScreen(
                 } else {
                     Text("保存")
                 }
+            }
+
+            if (name.isBlank()) {
+                Text(
+                    text = "姓名为必填项",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
