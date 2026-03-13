@@ -31,14 +31,20 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build Release APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Decode Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/resident.jks
 
-    - name: List APK output (debug)
-      run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
+    - name: Build Release APK
+      run: ./gradlew assembleRelease --stacktrace
+      env:
+        KEYSTORE_FILE: resident.jks
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-release
-        path: app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/release/*.apk
