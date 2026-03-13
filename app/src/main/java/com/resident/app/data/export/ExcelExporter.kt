@@ -12,7 +12,7 @@ import javax.inject.Singleton
 
 @Singleton
 class ExcelExporter @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     fun exportToExcel(residents: List<Resident>): Result<String> {
         return try {
@@ -54,5 +54,6 @@ class ExcelExporter @Inject constructor(
         }
     }
 }
+
 
 
