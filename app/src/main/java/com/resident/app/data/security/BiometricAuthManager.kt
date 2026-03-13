@@ -1,6 +1,7 @@
 package com.resident.app.data.security
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Intent
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -11,7 +12,7 @@ import javax.inject.Singleton
 
 @Singleton
 class BiometricAuthManager @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     private var promptInfo: BiometricPrompt.PromptInfo? = null
     private var biometricPrompt: BiometricPrompt? = null
@@ -58,3 +59,4 @@ class BiometricAuthManager @Inject constructor(
         biometricPrompt?.authenticate(promptInfo!!)
     }
 }
+
