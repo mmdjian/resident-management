@@ -33,7 +33,7 @@ jobs:
 
     - name: Decode Keystore
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/resident.jks
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n ' | base64 --decode > app/resident.jks
 
     - name: Build Release APK
       run: ./gradlew assembleRelease --stacktrace
