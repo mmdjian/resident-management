@@ -32,11 +32,10 @@ android {
         }
     }
 
-        compileOptions {
+    compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
     }
 
     kotlinOptions {
@@ -61,6 +60,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
     // Android 核心
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -110,7 +110,7 @@ dependencies {
     // 生物识别
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Excel 导出 - Apache POI 3.17
+    // Excel 导出
     implementation("org.apache.poi:poi:3.17")
 
     // 测试依赖
@@ -122,4 +122,3 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
-
