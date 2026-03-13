@@ -28,7 +28,7 @@ class ExcelExporter @Inject constructor(
             // 填充数据
             residents.forEachIndexed { rowIndex, resident ->
                 val row = sheet.createRow(rowIndex + 1)
-                row.createCell(0).setCellValue(resident.id)
+                row.createCell(0).setCellValue(resident.id.toDouble())
                 row.createCell(1).setCellValue(resident.name)
                 row.createCell(2).setCellValue(resident.gender)
                 row.createCell(3).setCellValue(resident.age.toDouble())
@@ -53,3 +53,4 @@ class ExcelExporter @Inject constructor(
         }
     }
 }
+
