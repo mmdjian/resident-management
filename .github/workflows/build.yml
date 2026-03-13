@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,8 +34,11 @@ jobs:
     - name: Build Release APK
       run: ./gradlew assembleRelease --stacktrace
 
+    - name: List APK output (debug)
+      run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-release
-        path: app/build/outputs/apk/release/app-release.apk
+        path: app/build/outputs/apk/release/*.apk
