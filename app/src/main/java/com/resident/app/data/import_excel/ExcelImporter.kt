@@ -6,7 +6,6 @@ import com.resident.app.data.entity.Resident
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.w3c.dom.Element
-import java.io.InputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -35,11 +34,18 @@ class ExcelImporter @Inject constructor(
     fun importFromExcel(uri: Uri): ImportResult {
         return try {
             val fileName = uri.lastPathSegment?.lowercase() ?: ""
-            if (fileName.endsWith(".xls") && !fileName.endsWith(".xlsx")) {
-                importXls(uri)
-            } else {
-                // 默认走 xlsx（含 .xlsx 及文件名不明确的情况）
-                importXlsx(uri)
+            when {
+                fileName.endsWith(".csv") -> importCsv(uri)
+                fileName.endsWith(".xls") && !fileName.endsWith(".xlsx") -> importXls(uri)
+                fileName.endsWith(".xlsx") -> importXlsx(uri)
+                else -> {
+                    // 文件名不可靠时（部分文件管理器返回编码路径），先尝试 xlsx，失败再试 xls
+                    try { importXlsx(uri) }
+                    catch (e: Exception) {
+                        try { importXls(uri) }
+                        catch (e2: Exception) { importCsv(uri) }
+                    }
+                }
             }
         } catch (e: Exception) {
             ImportResult(0, 0, emptyList(), "解析失败：${e.message}")
@@ -263,6 +269,95 @@ class ExcelImporter @Inject constructor(
                 val ageStr = col(ageIdx)
                 val age = if (birthDate.isNotEmpty()) calcAge(birthDate)
                 else ageStr.toDoubleOrNull()?.toInt() ?: 0
+
+                val customFields = mutableMapOf<String, String>()
+                customFieldIndices.forEach { (i, key) ->
+                    val v = col(i)
+                    if (v.isNotEmpty()) customFields[key] = v
+                }
+
+                residents.add(Resident(
+                    name = name,
+                    gender = col(genderIdx),
+                    birthDate = birthDate,
+                    age = age,
+                    education = col(eduIdx),
+                    occupation = col(occupIdx),
+                    phone = col(phoneIdx),
+                    address = col(addrIdx),
+                    customFields = customFields
+                ))
+            }
+
+            ImportResult(residents.size, failedCount, residents)
+        } finally {
+            inputStream.close()
+        }
+    }
+
+    // ──────────────── CSV / TSV（原生解析，无依赖）────────────────
+
+    private fun importCsv(uri: Uri): ImportResult {
+        val inputStream = context.contentResolver.openInputStream(uri)
+            ?: return ImportResult(0, 0, emptyList(), "无法读取文件")
+
+        return try {
+            val lines = inputStream.bufferedReader(Charsets.UTF_8).readLines()
+                .ifEmpty { return ImportResult(0, 0, emptyList(), "文件为空") }
+
+            // 自动检测分隔符：逗号 or 制表符
+            val firstLine = lines.first()
+            val delimiter = if (firstLine.contains('\t')) '\t' else ','
+
+            fun parseLine(line: String): List<String> {
+                // 简单 CSV 解析：处理带引号的字段
+                val result = mutableListOf<String>()
+                var inQuote = false
+                val current = StringBuilder()
+                for (ch in line) {
+                    when {
+                        ch == '"' -> inQuote = !inQuote
+                        ch == delimiter && !inQuote -> { result.add(current.toString().trim()); current.clear() }
+                        else -> current.append(ch)
+                    }
+                }
+                result.add(current.toString().trim())
+                return result
+            }
+
+            val headers = parseLine(firstLine)
+            if (!headers.contains("姓名"))
+                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确")
+
+            val nameIdx   = headers.indexOf("姓名")
+            val genderIdx = headers.indexOf("性别")
+            val birthIdx  = maxOf(headers.indexOf("出生年月日"), headers.indexOf("出生日期"))
+            val ageIdx    = headers.indexOf("年龄")
+            val eduIdx    = maxOf(headers.indexOf("受教育水平"), headers.indexOf("学历"))
+            val occupIdx  = headers.indexOf("职业")
+            val phoneIdx  = maxOf(headers.indexOf("电话"), headers.indexOf("手机"))
+            val addrIdx   = maxOf(headers.indexOf("地址"), headers.indexOf("住址"))
+            val customFieldIndices = headers.mapIndexedNotNull { i, h ->
+                if (h.isNotEmpty() && h !in knownHeaders) i to h else null
+            }
+
+            val residents = mutableListOf<Resident>()
+            var failedCount = 0
+
+            for (lineIndex in 1 until lines.size) {
+                val line = lines[lineIndex]
+                if (line.isBlank()) continue
+                val cols = parseLine(line)
+                fun col(idx: Int) = if (idx < 0 || idx >= cols.size) "" else cols[idx]
+
+                val name = col(nameIdx)
+                if (name.isEmpty()) { failedCount++; continue }
+
+                val birthDateRaw = col(birthIdx)
+                val birthDate = normalizeDateStr(birthDateRaw)
+                val ageStr = col(ageIdx)
+                val age = if (birthDate.isNotEmpty()) calcAge(birthDate)
+                          else ageStr.toDoubleOrNull()?.toInt() ?: 0
 
                 val customFields = mutableMapOf<String, String>()
                 customFieldIndices.forEach { (i, key) ->

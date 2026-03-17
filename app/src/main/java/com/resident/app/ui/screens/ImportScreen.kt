@@ -42,13 +42,12 @@ fun ImportScreen(
         }
     }
 
-    // 文件选择器（支持 .xls 和 .xlsx）
+    // 文件选择器：用 */* 确保所有文件管理器都能选到文件，不受 MIME 限制
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             selectedUri = uri
-            // 获取文件名
             val cursor = context.contentResolver.query(uri, null, null, null, null)
             cursor?.use {
                 if (it.moveToFirst()) {
@@ -88,7 +87,7 @@ fun ImportScreen(
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("使用说明", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = Color(0xFF1565C0))
-                    Text("• 支持 .xls 格式的 Excel 文件", style = MaterialTheme.typography.bodySmall)
+                    Text("• 支持 .xlsx / .xls / .csv 格式", style = MaterialTheme.typography.bodySmall)
                     Text("• 第一行必须是表头，支持以下列名：", style = MaterialTheme.typography.bodySmall)
                     Text("  姓名、性别、出生年月日、年龄、受教育水平、职业、电话、地址",
                         style = MaterialTheme.typography.bodySmall, color = Color(0xFF1565C0))
@@ -100,12 +99,12 @@ fun ImportScreen(
 
             // 选择文件按钮
             OutlinedButton(
-                onClick = { filePicker.launch("application/vnd.ms-excel") },
+                onClick = { filePicker.launch("*/*") },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Icon(Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (selectedFileName.isEmpty()) "选择 Excel 文件" else "已选择：$selectedFileName")
+                Text(if (selectedFileName.isEmpty()) "选择文件（xlsx / xls / csv）" else "已选择：$selectedFileName")
             }
 
             // 如果选了文件，显示导入按钮
