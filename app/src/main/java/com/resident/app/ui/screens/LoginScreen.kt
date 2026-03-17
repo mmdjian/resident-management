@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.resident.app.data.security.BiometricAuthManager
 import kotlinx.coroutines.launch
@@ -65,7 +64,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val activity = context as FragmentActivity
-    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
     // 检查是否启用指纹
