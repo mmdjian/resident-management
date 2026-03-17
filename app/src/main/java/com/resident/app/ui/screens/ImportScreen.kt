@@ -89,7 +89,7 @@ fun ImportScreen(
                         color = Color(0xFF1565C0))
                     Text("• 支持 .xlsx / .xls / .csv 格式", style = MaterialTheme.typography.bodySmall)
                     Text("• 第一行必须是表头，支持以下列名：", style = MaterialTheme.typography.bodySmall)
-                    Text("  姓名、性别、出生年月日、年龄、受教育水平、职业、电话、地址",
+                    Text("  姓名、性别、出生年月日、年龄、受教育水平、政治面貌、电话、地址",
                         style = MaterialTheme.typography.bodySmall, color = Color(0xFF1565C0))
                     Text("• 姓名为必填项，其余列可选", style = MaterialTheme.typography.bodySmall)
                     Text("• 不认识的列名会作为自定义字段导入", style = MaterialTheme.typography.bodySmall)

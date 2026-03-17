@@ -25,8 +25,7 @@ import java.time.temporal.ChronoUnit
 val EDUCATION_OPTIONS = listOf("", "初中及以下", "高中/中专", "大专", "本科", "硕士及以上")
 
 val OCCUPATION_OPTIONS = listOf(
-    "", "在职职工", "个体经营", "自由职业", "企业管理人员",
-    "农民", "学生", "退休人员", "无业/待业", "其他"
+    "", "中共党员", "共青团员", "群众", "民主党派成员", "无党派人士"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -209,8 +208,8 @@ fun AddEditResidentScreen(
                 enabled = birthDate.isEmpty()
             )
 
-            // ── 教育/职业 ──
-            SectionTitle("教育与职业")
+            // ── 教育/政治面貌 ──
+            SectionTitle("教育与政治面貌")
 
             // 学历下拉
             ExposedDropdownMenuBox(
@@ -236,7 +235,7 @@ fun AddEditResidentScreen(
                 }
             }
 
-            // 职业下拉（含手动输入）
+            // 政治面貌下拉（含手动输入）
             ExposedDropdownMenuBox(
                 expanded = occupExpanded,
                 onExpandedChange = { occupExpanded = !occupExpanded }
@@ -245,7 +244,7 @@ fun AddEditResidentScreen(
                     value = occupation,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("职业") },
+                    label = { Text("政治面貌") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(occupExpanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                     placeholder = { Text("请选择") }
@@ -259,12 +258,12 @@ fun AddEditResidentScreen(
                     }
                 }
             }
-            // 职业"其他"时可手动输入
+            // 政治面貌"其他"时可手动输入
             if (isCustomOccup) {
                 OutlinedTextField(
                     value = occupCustom,
                     onValueChange = { occupCustom = it },
-                    label = { Text("请填写具体职业") },
+                    label = { Text("请填写具体政治面貌") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

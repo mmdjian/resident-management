@@ -104,11 +104,13 @@ fun NavGraph(
             LaunchedEffect(residentId) {
                 resident = viewModel.getResidentById(residentId)
             }
-            AddEditResidentScreen(
-                viewModel = viewModel,
-                resident = resident,
-                onBack = { navController.popBackStack() }
-            )
+            if (resident != null) {
+                AddEditResidentScreen(
+                    viewModel = viewModel,
+                    resident = resident,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(Screen.Statistics.route) {

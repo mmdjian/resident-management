@@ -326,7 +326,7 @@ fun ResidentItem(
                     style = MaterialTheme.typography.bodySmall, color = Color(0xFF888888))
             }
             if (resident.occupation.isNotEmpty()) {
-                Text("职业: ${resident.occupation}",
+                Text("政治面貌: ${resident.occupation}",
                     style = MaterialTheme.typography.bodySmall, color = Color(0xFF888888))
             }
             if (resident.notes.isNotEmpty()) {

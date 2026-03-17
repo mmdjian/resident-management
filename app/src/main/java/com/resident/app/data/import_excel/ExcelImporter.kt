@@ -28,7 +28,7 @@ class ExcelImporter @Inject constructor(
     // 已知列名映射
     private val knownHeaders = setOf(
         "姓名", "性别", "出生年月日", "出生日期", "年龄",
-        "受教育水平", "学历", "职业", "电话", "手机", "地址", "住址", "id", "ID", "录入时间"
+        "受教育水平", "学历", "政治面貌", "电话", "手机", "地址", "住址", "id", "ID", "录入时间"
     )
 
     fun importFromExcel(uri: Uri): ImportResult {
@@ -78,7 +78,7 @@ class ExcelImporter @Inject constructor(
             val birthIdx  = maxOf(headers.indexOf("出生年月日"), headers.indexOf("出生日期"))
             val ageIdx    = headers.indexOf("年龄")
             val eduIdx    = maxOf(headers.indexOf("受教育水平"), headers.indexOf("学历"))
-            val occupIdx  = headers.indexOf("职业")
+            val occupIdx  = headers.indexOf("政治面貌")
             val phoneIdx  = maxOf(headers.indexOf("电话"), headers.indexOf("手机"))
             val addrIdx   = maxOf(headers.indexOf("地址"), headers.indexOf("住址"))
             val customFieldIndices = headers.mapIndexedNotNull { i, h ->
@@ -239,7 +239,7 @@ class ExcelImporter @Inject constructor(
             val birthIdx  = maxOf(headerList.indexOf("出生年月日"), headerList.indexOf("出生日期"))
             val ageIdx    = headerList.indexOf("年龄")
             val eduIdx    = maxOf(headerList.indexOf("受教育水平"), headerList.indexOf("学历"))
-            val occupIdx  = headerList.indexOf("职业")
+            val occupIdx  = headerList.indexOf("政治面貌")
             val phoneIdx  = maxOf(headerList.indexOf("电话"), headerList.indexOf("手机"))
             val addrIdx   = maxOf(headerList.indexOf("地址"), headerList.indexOf("住址"))
             val customFieldIndices = headerList.mapIndexedNotNull { i, h ->
@@ -336,7 +336,7 @@ class ExcelImporter @Inject constructor(
             val birthIdx  = maxOf(headers.indexOf("出生年月日"), headers.indexOf("出生日期"))
             val ageIdx    = headers.indexOf("年龄")
             val eduIdx    = maxOf(headers.indexOf("受教育水平"), headers.indexOf("学历"))
-            val occupIdx  = headers.indexOf("职业")
+            val occupIdx  = headers.indexOf("政治面貌")
             val phoneIdx  = maxOf(headers.indexOf("电话"), headers.indexOf("手机"))
             val addrIdx   = maxOf(headers.indexOf("地址"), headers.indexOf("住址"))
             val customFieldIndices = headers.mapIndexedNotNull { i, h ->

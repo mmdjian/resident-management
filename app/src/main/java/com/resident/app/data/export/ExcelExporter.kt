@@ -26,7 +26,7 @@ class ExcelExporter @Inject constructor(
 
             // 表头
             val headerRow = sheet.createRow(0)
-            val baseHeaders = listOf("ID", "姓名", "性别", "出生年月日", "年龄", "受教育水平", "职业", "电话", "地址")
+            val baseHeaders = listOf("ID", "姓名", "性别", "出生年月日", "年龄", "受教育水平", "政治面貌", "电话", "地址")
             val allHeaders = baseHeaders + allCustomKeys + listOf("录入时间")
             allHeaders.forEachIndexed { index, header ->
                 headerRow.createCell(index).setCellValue(header)
