@@ -136,8 +136,16 @@ dependencies {
     implementation("org.apache.poi:poi-ooxml:3.17") {
         exclude(group = "stax", module = "stax-api")
         exclude(group = "xml-apis", module = "xml-apis")
+        // poi-ooxml 和 poi-ooxml-schemas 都会传递依赖 xmlbeans，统一在此排除，单独声明一次
+        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
     }
+    // poi-ooxml-schemas 也会重复拉取 xmlbeans，排除后单独保留一份
     implementation("org.apache.poi:poi-ooxml-schemas:3.17") {
+        exclude(group = "stax", module = "stax-api")
+        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
+    }
+    // xmlbeans 只声明一次，避免重复
+    implementation("org.apache.xmlbeans:xmlbeans:2.6.0") {
         exclude(group = "stax", module = "stax-api")
     }
 
