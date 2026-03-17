@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.rememberCoroutineScope
 import com.resident.app.ui.viewmodel.MemoViewModel
 import java.text.SimpleDateFormat
 import java.util.*
