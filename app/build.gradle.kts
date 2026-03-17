@@ -70,6 +70,12 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/NOTICE"
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/LICENSE"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }
 }
@@ -125,8 +131,15 @@ dependencies {
     // 生物识别
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Excel 导出 - Apache POI 3.17
+    // Excel 导入导出 - Apache POI（.xls 和 .xlsx 双格式支持）
     implementation("org.apache.poi:poi:3.17")
+    implementation("org.apache.poi:poi-ooxml:3.17") {
+        exclude(group = "stax", module = "stax-api")
+        exclude(group = "xml-apis", module = "xml-apis")
+    }
+    implementation("org.apache.poi:poi-ooxml-schemas:3.17") {
+        exclude(group = "stax", module = "stax-api")
+    }
 
     // Gson（自定义字段序列化）
     implementation("com.google.code.gson:gson:2.10.1")

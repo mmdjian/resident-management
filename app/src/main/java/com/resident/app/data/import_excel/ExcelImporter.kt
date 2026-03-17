@@ -5,6 +5,8 @@ import android.net.Uri
 import com.resident.app.data.entity.Resident
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.ss.usermodel.Workbook
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -33,7 +35,27 @@ class ExcelImporter @Inject constructor(
             val inputStream = context.contentResolver.openInputStream(uri)
                 ?: return ImportResult(0, 0, emptyList(), "无法读取文件")
 
-            val workbook = HSSFWorkbook(inputStream)
+            // 根据文件名判断格式，自动选择 HSSF(.xls) 或 XSSF(.xlsx)
+            val fileName = uri.lastPathSegment?.lowercase() ?: ""
+            val workbook: Workbook = try {
+                if (fileName.endsWith(".xlsx")) {
+                    XSSFWorkbook(inputStream)
+                } else {
+                    // 先尝试 xls，如果失败再尝试 xlsx（文件名不可靠时的兜底）
+                    HSSFWorkbook(inputStream)
+                }
+            } catch (e: Exception) {
+                // 如果 HSSFWorkbook 失败（可能是 .xlsx 内容），重新打开流再试 XSSFWorkbook
+                inputStream.close()
+                val retryStream = context.contentResolver.openInputStream(uri)
+                    ?: return ImportResult(0, 0, emptyList(), "无法重新读取文件")
+                try {
+                    XSSFWorkbook(retryStream)
+                } catch (e2: Exception) {
+                    retryStream.close()
+                    return ImportResult(0, 0, emptyList(), "不支持的文件格式，请使用 .xls 或 .xlsx 文件")
+                }
+            }
             val sheet = workbook.getSheetAt(0)
             val residents = mutableListOf<Resident>()
             var failedCount = 0
