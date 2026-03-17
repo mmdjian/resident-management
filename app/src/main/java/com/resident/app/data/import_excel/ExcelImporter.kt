@@ -74,8 +74,10 @@ class ExcelImporter @Inject constructor(
                 fun cellStr(idx: Int): String {
                     if (idx < 0) return ""
                     val cell = row.getCell(idx) ?: return ""
+                    // POI 3.17 的 getCellType() 返回 int，0 = NUMERIC，1 = STRING，3 = BLANK
+                    @Suppress("DEPRECATION")
                     return when (cell.cellType) {
-                        org.apache.poi.ss.usermodel.CellType.NUMERIC -> {
+                        0 -> { // CELL_TYPE_NUMERIC
                             val num = cell.numericCellValue
                             if (num == num.toLong().toDouble()) num.toLong().toString()
                             else num.toString()
