@@ -1,9 +1,12 @@
 package com.resident.app.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.resident.app.data.entity.Resident
 import com.resident.app.data.export.ExcelExporter
+import com.resident.app.data.import_excel.ExcelImporter
 import com.resident.app.data.repository.ResidentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -13,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ResidentViewModel @Inject constructor(
     private val repository: ResidentRepository,
-    private val excelExporter: ExcelExporter
+    private val excelExporter: ExcelExporter,
+    private val excelImporter: ExcelImporter
 ) : ViewModel() {
 
     private val _residents = MutableStateFlow<List<Resident>>(emptyList())
@@ -115,6 +119,32 @@ class ResidentViewModel @Inject constructor(
             } catch (e: Exception) {
                 _message.value = "导出失败: ${e.message}"
             } finally { _isLoading.value = false }
+        }
+    }
+
+    // 从 Excel 导入居民数据
+    fun importFromExcel(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = excelImporter.importFromExcel(uri)
+                if (result.errorMsg.isNotEmpty()) {
+                    _message.value = "导入失败：${result.errorMsg}"
+                } else if (result.residents.isEmpty()) {
+                    _message.value = "没有找到可导入的数据，请检查文件格式"
+                } else {
+                    result.residents.forEach { repository.insertResident(it) }
+                    val msg = buildString {
+                        append("导入成功！共导入 ${result.success} 条记录")
+                        if (result.failed > 0) append("，${result.failed} 条因姓名为空已跳过")
+                    }
+                    _message.value = msg
+                }
+            } catch (e: Exception) {
+                _message.value = "导入失败：${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

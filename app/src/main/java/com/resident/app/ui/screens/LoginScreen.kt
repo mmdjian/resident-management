@@ -1,5 +1,6 @@
 package com.resident.app.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +20,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -29,8 +31,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// 密码管理工具类，使用 SharedPreferences 持久化
 object AppPassword {
-    var password: String = "123456"
+    private const val PREFS_NAME = "app_password_prefs"
+    private const val KEY_PASSWORD = "password"
+    private const val DEFAULT_PASSWORD = "123456"
+
+    fun getPassword(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_PASSWORD, DEFAULT_PASSWORD) ?: DEFAULT_PASSWORD
+    }
+
+    fun setPassword(context: Context, newPassword: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_PASSWORD, newPassword).apply()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,11 +56,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     var errorMsg by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     fun tryLogin() {
-        if (input == AppPassword.password) {
+        if (input == AppPassword.getPassword(context)) {
             keyboard?.hide()
             onLoginSuccess()
         } else {
@@ -187,14 +203,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "默认密码：123456",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
@@ -211,6 +219,7 @@ fun ChangePasswordDialog(onDismiss: () -> Unit) {
     var showConfirm by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf("") }
     var successMsg by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -269,11 +278,11 @@ fun ChangePasswordDialog(onDismiss: () -> Unit) {
         confirmButton = {
             Button(onClick = {
                 when {
-                    oldPwd != AppPassword.password -> errorMsg = "当前密码错误"
+                    oldPwd != AppPassword.getPassword(context) -> errorMsg = "当前密码错误"
                     newPwd.length < 4 -> errorMsg = "新密码至少4位"
                     newPwd != confirmPwd -> errorMsg = "两次密码不一致"
                     else -> {
-                        AppPassword.password = newPwd
+                        AppPassword.setPassword(context, newPwd)
                         successMsg = "密码修改成功！"
                         errorMsg = ""
                     }

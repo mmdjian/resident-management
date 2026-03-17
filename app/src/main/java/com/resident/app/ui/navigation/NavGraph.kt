@@ -12,6 +12,7 @@ import androidx.navigation.navArgument
 import com.resident.app.data.export.ExcelExporter
 import com.resident.app.ui.screens.AddEditResidentScreen
 import com.resident.app.ui.screens.ExportScreen
+import com.resident.app.ui.screens.ImportScreen
 import com.resident.app.ui.screens.LoginScreen
 import com.resident.app.ui.screens.ResidentListScreen
 import com.resident.app.ui.screens.StatisticsScreen
@@ -27,6 +28,7 @@ sealed class Screen(val route: String) {
     }
     object Statistics : Screen("statistics")
     object Export : Screen("export")
+    object Import : Screen("import")
 }
 
 @Composable
@@ -58,7 +60,8 @@ fun NavGraph(
                     navController.navigate(Screen.EditResident.createRoute(resident.id))
                 },
                 onStatisticsClick = { navController.navigate(Screen.Statistics.route) },
-                onExportClick = { navController.navigate(Screen.Export.route) }
+                onExportClick = { navController.navigate(Screen.Export.route) },
+                onImportClick = { navController.navigate(Screen.Import.route) }
             )
         }
 
@@ -95,6 +98,13 @@ fun NavGraph(
 
         composable(Screen.Export.route) {
             ExportScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Import.route) {
+            ImportScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )

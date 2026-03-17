@@ -25,7 +25,8 @@ fun ResidentListScreen(
     onAddClick: () -> Unit,
     onEditClick: (Resident) -> Unit,
     onStatisticsClick: () -> Unit,
-    onExportClick: () -> Unit
+    onExportClick: () -> Unit,
+    onImportClick: () -> Unit
 ) {
     val residents by viewModel.residents.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -61,6 +62,13 @@ fun ResidentListScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("导入数据") },
+                                onClick = {
+                                    showMenu = false
+                                    onImportClick()
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("导出数据") },
                                 onClick = {
