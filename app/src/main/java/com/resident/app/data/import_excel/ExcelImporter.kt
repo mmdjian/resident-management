@@ -199,9 +199,6 @@ class ExcelImporter @Inject constructor(
             val sheetBytes = entries["xl/worksheets/sheet1.xml"]
                 ?: return ImportResult(0, 0, emptyList(), "无法读取工作表，文件可能已损坏")
 
-            val sheetBytes = entries["xl/worksheets/sheet1.xml"]
-                ?: return ImportResult(0, 0, emptyList(), "无法读取工作表，文件可能已损坏")
-
             // 解析共享字符串表（sharedStrings.xml）
             val sharedStrings = mutableListOf<String>()
             entries["xl/sharedStrings.xml"]?.let { ssBytes ->
