@@ -114,11 +114,13 @@ class ExcelImporter @Inject constructor(
                 val age = if (birthDate.isNotEmpty()) calcAge(birthDate)
                 else ageStr.toDoubleOrNull()?.toInt() ?: 0
 
-                val customFields = mutableMapOf<String, String>()
+                // 未识别字段归入备注
+                val notesParts = mutableListOf<String>()
                 customFieldIndices.forEach { (i, key) ->
                     val v = cellStr(i)
-                    if (v.isNotEmpty()) customFields[key] = v
+                    if (v.isNotEmpty()) notesParts.add("$key: $v")
                 }
+                val notes = notesParts.joinToString("；")
 
                 residents.add(Resident(
                     name = name,
@@ -129,7 +131,7 @@ class ExcelImporter @Inject constructor(
                     occupation = cellStr(occupIdx),
                     phone = cellStr(phoneIdx),
                     address = cellStr(addrIdx),
-                    customFields = customFields
+                    notes = notes
                 ))
             }
 
@@ -270,10 +272,10 @@ class ExcelImporter @Inject constructor(
                 val age = if (birthDate.isNotEmpty()) calcAge(birthDate)
                 else ageStr.toDoubleOrNull()?.toInt() ?: 0
 
-                val customFields = mutableMapOf<String, String>()
+                val notesParts2 = mutableListOf<String>()
                 customFieldIndices.forEach { (i, key) ->
                     val v = col(i)
-                    if (v.isNotEmpty()) customFields[key] = v
+                    if (v.isNotEmpty()) notesParts2.add("$key: $v")
                 }
 
                 residents.add(Resident(
@@ -285,7 +287,7 @@ class ExcelImporter @Inject constructor(
                     occupation = col(occupIdx),
                     phone = col(phoneIdx),
                     address = col(addrIdx),
-                    customFields = customFields
+                    notes = notesParts2.joinToString("；")
                 ))
             }
 
@@ -374,7 +376,7 @@ class ExcelImporter @Inject constructor(
                     occupation = col(occupIdx),
                     phone = col(phoneIdx),
                     address = col(addrIdx),
-                    customFields = customFields
+                    notes = customFields.entries.joinToString("；") { "${it.key}: ${it.value}" }
                 ))
             }
 

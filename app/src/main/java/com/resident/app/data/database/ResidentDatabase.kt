@@ -8,7 +8,7 @@ import com.resident.app.data.entity.Resident
 
 @Database(
     entities = [Resident::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class ResidentDatabase : RoomDatabase() {

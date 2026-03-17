@@ -15,6 +15,14 @@ interface ResidentDao {
     @Query("SELECT * FROM residents WHERE name LIKE :searchQuery OR phone LIKE :searchQuery OR address LIKE :searchQuery")
     fun searchResidents(searchQuery: String): Flow<List<Resident>>
 
+    // 按姓名精确搜索
+    @Query("SELECT * FROM residents WHERE name LIKE :query ORDER BY createdAt DESC")
+    fun searchByName(query: String): Flow<List<Resident>>
+
+    // 按地址/居住单元搜索（如：2号楼1单元301）
+    @Query("SELECT * FROM residents WHERE address LIKE :query ORDER BY address ASC")
+    fun searchByAddress(query: String): Flow<List<Resident>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertResident(resident: Resident): Long
 

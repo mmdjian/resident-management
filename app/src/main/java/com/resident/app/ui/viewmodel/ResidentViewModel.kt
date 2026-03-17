@@ -26,6 +26,10 @@ class ResidentViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    // 搜索模式：name=姓名，address=居住单元
+    private val _searchMode = MutableStateFlow("name")
+    val searchMode: StateFlow<String> = _searchMode.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -42,13 +46,22 @@ class ResidentViewModel @Inject constructor(
         }
     }
 
+    fun setSearchMode(mode: String) {
+        _searchMode.value = mode
+        // 切换模式时重新触发搜索
+        onSearchQueryChange(_searchQuery.value)
+    }
+
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
         viewModelScope.launch {
             if (query.isBlank()) {
                 repository.getAllResidents().collect { _residents.value = it }
             } else {
-                repository.searchResidents(query).collect { _residents.value = it }
+                when (_searchMode.value) {
+                    "address" -> repository.searchByAddress(query).collect { _residents.value = it }
+                    else -> repository.searchByName(query).collect { _residents.value = it }
+                }
             }
         }
     }

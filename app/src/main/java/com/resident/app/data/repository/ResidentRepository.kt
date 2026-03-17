@@ -17,6 +17,12 @@ class ResidentRepository @Inject constructor(
     fun searchResidents(query: String): Flow<List<Resident>> =
         residentDao.searchResidents("%$query%")
 
+    fun searchByName(query: String): Flow<List<Resident>> =
+        residentDao.searchByName("%$query%")
+
+    fun searchByAddress(query: String): Flow<List<Resident>> =
+        residentDao.searchByAddress("%$query%")
+
     suspend fun insertResident(resident: Resident): Long = residentDao.insertResident(resident)
 
     suspend fun updateResident(resident: Resident) = residentDao.updateResident(resident)

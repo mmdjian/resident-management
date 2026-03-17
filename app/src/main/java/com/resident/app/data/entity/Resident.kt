@@ -35,6 +35,7 @@ data class Resident(
     val occupation: String = "",
     val phone: String = "",
     val address: String = "",
+    val notes: String = "",             // 备注（导入时不能识别的字段归入此处）
     val customFields: Map<String, String> = emptyMap(),  // 自定义字段
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
