@@ -1,11 +1,13 @@
 package com.resident.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -26,7 +28,8 @@ fun StatisticsScreen(
     viewModel: StatisticsViewModel,
     residentViewModel: ResidentViewModel,
     onBack: () -> Unit,
-    onExportClick: () -> Unit
+    onExportClick: () -> Unit,
+    onFilterClick: (String) -> Unit = {}
 ) {
     val statistics by viewModel.statistics.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -110,12 +113,26 @@ fun StatisticsScreen(
                 // 基础统计
                 Text("基础统计", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(title = "总居民数", value = statistics!!.totalCount.toString(), modifier = Modifier.weight(1f))
-                    StatCard(title = "平均年龄", value = "${statistics!!.averageAge}岁", modifier = Modifier.weight(1f))
+                    ClickableStatCard(
+                        title = "总居民",
+                        value = statistics!!.totalCount.toString(),
+                        modifier = Modifier.weight(1f),
+                        onClick = { onFilterClick("all") }
+                    )
+                    ClickableStatCard(
+                        title = "男性",
+                        value = statistics!!.maleCount.toString(),
+                        modifier = Modifier.weight(1f),
+                        onClick = { if (statistics!!.maleCount > 0) onFilterClick("gender:男") }
+                    )
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(title = "男性", value = statistics!!.maleCount.toString(), modifier = Modifier.weight(1f))
-                    StatCard(title = "女性", value = statistics!!.femaleCount.toString(), modifier = Modifier.weight(1f))
+                    ClickableStatCard(
+                        title = "女性",
+                        value = statistics!!.femaleCount.toString(),
+                        modifier = Modifier.weight(1f),
+                        onClick = { if (statistics!!.femaleCount > 0) onFilterClick("gender:女") }
+                    )
                 }
 
                 // 学历统计
@@ -123,15 +140,28 @@ fun StatisticsScreen(
                     Text("学历分布", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     statistics!!.educationCounts.forEach { (edu, count) ->
                         if (count > 0) {
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onFilterClick("education:$edu") }
+                            ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(edu, style = MaterialTheme.typography.bodyLarge)
-                                    Text("$count 人", style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("$count 人", style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = "查看",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -152,6 +182,37 @@ fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
             Text(text = title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun ClickableStatCard(title: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier.clickable(enabled = value != "0") { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = if (value == "0") MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                if (value != "0") {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "查看",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }

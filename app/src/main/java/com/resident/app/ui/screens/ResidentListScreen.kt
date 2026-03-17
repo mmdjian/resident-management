@@ -151,7 +151,7 @@ fun ResidentTab(
                     value = searchQuery,
                     onValueChange = viewModel::onSearchQueryChange,
                     placeholder = {
-                        Text(if (searchMode == "address") "输入楼栋/单元/房号搜索..." else "输入姓名搜索...")
+                        Text(if (searchMode == "address") "按居住单元搜索 (如: 1-0-0 表示1号楼全部, 0-0-304表示所有楼304户)..." else "输入姓名、电话、地址等任意信息搜索...")
                     },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
@@ -167,6 +167,11 @@ fun ResidentTab(
                 Spacer(modifier = Modifier.height(6.dp))
                 // 搜索模式切换芯片
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SearchModeChip(
+                        label = "全字段",
+                        selected = searchMode == "all",
+                        onClick = { viewModel.setSearchMode("all") }
+                    )
                     SearchModeChip(
                         label = "按姓名",
                         selected = searchMode == "name",

@@ -26,8 +26,8 @@ class ResidentViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    // 搜索模式：name=姓名，address=居住单元
-    private val _searchMode = MutableStateFlow("name")
+    // 搜索模式：all=全字段，name=姓名，address=居住单元
+    private val _searchMode = MutableStateFlow("all")
     val searchMode: StateFlow<String> = _searchMode.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -35,6 +35,9 @@ class ResidentViewModel @Inject constructor(
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+
+    private val _currentFilter = MutableStateFlow<String?>(null)
+    val currentFilter: StateFlow<String?> = _currentFilter.asStateFlow()
 
     init { loadResidents() }
 
@@ -59,11 +62,23 @@ class ResidentViewModel @Inject constructor(
                 repository.getAllResidents().collect { _residents.value = it }
             } else {
                 when (_searchMode.value) {
-                    "address" -> repository.searchByAddress(query).collect { _residents.value = it }
+                    "address" -> {
+                        // 检查是否是楼-单元-户号格式
+                        if (query.matches(Regex("^\\d+-\\d+-\\d+$"))) {
+                            repository.searchByBuilding(query).collect { _residents.value = it }
+                        } else {
+                            repository.searchByAddress(query).collect { _residents.value = it }
+                        }
+                    }
+                    "all" -> repository.searchAllFields(query).collect { _residents.value = it }
                     else -> repository.searchByName(query).collect { _residents.value = it }
                 }
             }
         }
+    }
+
+    suspend fun getResidentById(id: Long): Resident? {
+        return repository.getResidentById(id)
     }
 
     fun insertResident(resident: Resident) {
@@ -162,4 +177,27 @@ class ResidentViewModel @Inject constructor(
     }
 
     fun clearMessage() { _message.value = null }
+
+    fun applyFilter(filter: String) {
+        _currentFilter.value = filter
+        viewModelScope.launch {
+            when {
+                filter == "all" -> repository.getAllResidents().collect { _residents.value = it }
+                filter.startsWith("gender:") -> {
+                    val gender = filter.substring(7)
+                    repository.getByGender(gender).collect { _residents.value = it }
+                }
+                filter.startsWith("education:") -> {
+                    val education = filter.substring(10)
+                    repository.getByEducation(education).collect { _residents.value = it }
+                }
+                else -> repository.getAllResidents().collect { _residents.value = it }
+            }
+        }
+    }
+
+    fun clearFilter() {
+        _currentFilter.value = null
+        loadResidents()
+    }
 }

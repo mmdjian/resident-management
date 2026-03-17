@@ -4,11 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.resident.app.data.entity.Resident
 import com.resident.app.data.export.ExcelExporter
 import com.resident.app.ui.screens.AddEditResidentScreen
 import com.resident.app.ui.screens.ExportScreen
@@ -21,7 +26,9 @@ import com.resident.app.ui.viewmodel.StatisticsViewModel
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
-    object ResidentList : Screen("resident_list")
+    object ResidentList : Screen("resident_list") {
+        fun createRoute(filter: String? = null) = if (filter != null) "resident_list?filter=$filter" else "resident_list"
+    }
     object AddResident : Screen("add_resident")
     object EditResident : Screen("edit_resident/{residentId}") {
         fun createRoute(residentId: Long) = "edit_resident/$residentId"
@@ -52,7 +59,22 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.ResidentList.route) {
+        composable(
+            route = "resident_list?filter={filter}",
+            arguments = listOf(navArgument("filter") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val filter = backStackEntry.arguments?.getString("filter")
+            LaunchedEffect(filter) {
+                if (filter != null) {
+                    viewModel.applyFilter(filter)
+                } else {
+                    viewModel.clearFilter()
+                }
+            }
             ResidentListScreen(
                 viewModel = viewModel,
                 onAddClick = { navController.navigate(Screen.AddResident.route) },
@@ -78,8 +100,10 @@ fun NavGraph(
             arguments = listOf(navArgument("residentId") { type = NavType.LongType })
         ) { backStackEntry ->
             val residentId = backStackEntry.arguments?.getLong("residentId") ?: return@composable
-            val residentList by viewModel.residents.collectAsState(initial = emptyList())
-            val resident = residentList.find { it.id == residentId }
+            var resident by remember { mutableStateOf<Resident?>(null) }
+            LaunchedEffect(residentId) {
+                resident = viewModel.getResidentById(residentId)
+            }
             AddEditResidentScreen(
                 viewModel = viewModel,
                 resident = resident,
@@ -92,7 +116,10 @@ fun NavGraph(
                 viewModel = statisticsViewModel,
                 residentViewModel = viewModel,
                 onBack = { navController.popBackStack() },
-                onExportClick = { navController.navigate(Screen.Export.route) }
+                onExportClick = { navController.navigate(Screen.Export.route) },
+                onFilterClick = { filter ->
+                    navController.navigate(Screen.ResidentList.createRoute(filter))
+                }
             )
         }
 
