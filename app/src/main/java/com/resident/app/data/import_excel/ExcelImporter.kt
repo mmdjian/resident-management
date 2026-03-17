@@ -82,20 +82,47 @@ class ExcelImporter @Inject constructor(
         val inputStream = context.contentResolver.openInputStream(uri)
             ?: return ImportResult(0, 0, emptyList(), "无法读取文件")
         return try {
+            android.util.Log.d("ExcelImport", "开始解析 XLS 文件")
             val workbook = HSSFWorkbook(inputStream)
             val sheet = workbook.getSheetAt(0)
 
             if (sheet.physicalNumberOfRows < 2)
                 return ImportResult(0, 0, emptyList(), "文件为空或只有表头，没有数据行")
 
-            val headerRow = sheet.getRow(0)
-                ?: return ImportResult(0, 0, emptyList(), "读取表头失败")
-            val headers = (0 until headerRow.lastCellNum).map { i ->
-                headerRow.getCell(i)?.toString()?.trim() ?: ""
+            android.util.Log.d("ExcelImport", "XLS 文件总行数: ${sheet.physicalNumberOfRows}")
+
+            // 自动找到包含"姓名"的行作为表头
+            var headerRowIndex = -1
+            var headers = listOf<String>()
+
+            for (i in 0 until minOf(10, sheet.physicalNumberOfRows)) {
+                val row = sheet.getRow(i) ?: continue
+                val rowHeaders = (0 until row.lastCellNum).map { j ->
+                    row.getCell(j)?.toString()?.trim() ?: ""
+                }
+
+                android.util.Log.d("ExcelImport", "XLS 第${i + 1}行: ${rowHeaders.take(5)}...")
+
+                if (rowHeaders.contains("姓名")) {
+                    headerRowIndex = i
+                    headers = rowHeaders
+                    android.util.Log.d("ExcelImport", "XLS 找到表头在第 ${i + 1} 行")
+                    break
+                }
+            }
+
+            if (headerRowIndex == -1) {
+                val row = sheet.getRow(0)
+                if (row != null) {
+                    headers = (0 until row.lastCellNum).map { i ->
+                        row.getCell(i)?.toString()?.trim() ?: ""
+                    }
+                }
+                android.util.Log.d("ExcelImport", "XLS 未找到包含'姓名'的行，使用第一行作为表头")
             }
 
             if (!headers.contains("姓名"))
-                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确")
+                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headers.joinToString(", ")}")
 
             val nameIdx  = headers.indexOf("姓名")
             val genderIdx = headers.indexOf("性别")
@@ -112,7 +139,9 @@ class ExcelImporter @Inject constructor(
             val residents = mutableListOf<Resident>()
             var failedCount = 0
 
-            for (rowIndex in 1 until sheet.physicalNumberOfRows) {
+            android.util.Log.d("ExcelImport", "XLS 表头在第 ${headerRowIndex + 1} 行, 开始解析数据行")
+
+            for (rowIndex in (headerRowIndex + 1) until sheet.physicalNumberOfRows) {
                 val row = sheet.getRow(rowIndex) ?: continue
 
                 fun cellStr(idx: Int): String {
@@ -230,7 +259,9 @@ class ExcelImporter @Inject constructor(
             if (rowList.length < 2)
                 return ImportResult(0, 0, emptyList(), "文件为空或只有表头，没有数据行")
 
-            // 读取表头（第一行）
+            android.util.Log.d("ExcelImport", "总共 ${rowList.length} 行")
+
+            // 读取表头（自动找到包含"姓名"的行）
             fun getCellValue(cell: Element): String {
                 val t = cell.getAttribute("t")
                 val v = cell.getElementsByTagName("v").item(0)?.textContent ?: ""
@@ -251,22 +282,47 @@ class ExcelImporter @Inject constructor(
                 return letters.fold(0) { acc, c -> acc * 26 + (c - 'A' + 1) } - 1
             }
 
-            // 解析第一行为 headers
-            val headerRowElem = rowList.item(0) as Element
-            val headerCells = headerRowElem.getElementsByTagName("c")
-            val maxCol = (0 until headerCells.length).maxOfOrNull { i ->
-                colIndex((headerCells.item(i) as Element).getAttribute("r").takeWhile { it.isLetter() })
-            } ?: 0
-            val headers = Array(maxCol + 1) { "" }
-            for (i in 0 until headerCells.length) {
-                val cell = headerCells.item(i) as Element
-                val col = colIndex(cell.getAttribute("r").takeWhile { it.isLetter() })
-                headers[col] = getCellValue(cell).trim()
+            // 自动找到包含"姓名"的行作为表头
+            var headerRowIndex = -1
+            var headerList = listOf<String>()
+
+            for (i in 0 until minOf(10, rowList.length)) {  // 只检查前10行，避免遍历整个大文件
+                val row = rowList.item(i) as Element
+                val cells = row.getElementsByTagName("c")
+
+                val cellMap = mutableMapOf<Int, String>()
+                for (j in 0 until cells.length) {
+                    val cell = cells.item(j) as Element
+                    val col = colIndex(cell.getAttribute("r").takeWhile { it.isLetter() })
+                    cellMap[col] = getCellValue(cell).trim()
+                }
+
+                val headers = cellMap.values.toList()
+                android.util.Log.d("ExcelImport", "第${i + 1}行内容: ${headers.take(5)}...")
+
+                if (headers.contains("姓名")) {
+                    headerRowIndex = i
+                    headerList = headers
+                    android.util.Log.d("ExcelImport", "找到表头在第 ${i + 1} 行")
+                    break
+                }
             }
 
-            val headerList = headers.toList()
-            android.util.Log.d("ExcelImport", "表头列表: $headerList")
-            android.util.Log.d("ExcelImport", "表头是否包含姓名: ${headerList.contains("姓名")}")
+            if (headerRowIndex == -1) {
+                // 如果没找到，尝试用第一行
+                val firstRow = rowList.item(0) as Element
+                val cells = firstRow.getElementsByTagName("c")
+                val cellMap = mutableMapOf<Int, String>()
+                for (j in 0 until cells.length) {
+                    val cell = cells.item(j) as Element
+                    val col = colIndex(cell.getAttribute("r").takeWhile { it.isLetter() })
+                    cellMap[col] = getCellValue(cell).trim()
+                }
+                headerList = cellMap.values.toList()
+                android.util.Log.d("ExcelImport", "未找到包含'姓名'的行，使用第一行作为表头")
+            }
+
+            android.util.Log.d("ExcelImport", "最终表头列表: $headerList")
             if (!headerList.contains("姓名"))
                 return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headerList.joinToString(", ")}")
 
@@ -285,9 +341,10 @@ class ExcelImporter @Inject constructor(
             val residents = mutableListOf<Resident>()
             var failedCount = 0
 
-            android.util.Log.d("ExcelImport", "总行数: ${rowList.length}, 开始解析数据行")
+            android.util.Log.d("ExcelImport", "总行数: ${rowList.length}, 表头在第 ${headerRowIndex + 1} 行, 开始解析数据行")
 
-            for (rowIndex in 1 until rowList.length) {
+            // 从表头行的下一行开始解析数据
+            for (rowIndex in (headerRowIndex + 1) until rowList.length) {
                 val row = rowList.item(rowIndex) as Element
                 val cells = row.getElementsByTagName("c")
 
@@ -352,8 +409,11 @@ class ExcelImporter @Inject constructor(
             ?: return ImportResult(0, 0, emptyList(), "无法读取文件")
 
         return try {
+            android.util.Log.d("ExcelImport", "开始解析 CSV 文件")
             val lines = inputStream.bufferedReader(Charsets.UTF_8).readLines()
                 .ifEmpty { return ImportResult(0, 0, emptyList(), "文件为空") }
+
+            android.util.Log.d("ExcelImport", "CSV 文件总行数: ${lines.size}")
 
             // 自动检测分隔符：逗号 or 制表符
             val firstLine = lines.first()
@@ -375,9 +435,30 @@ class ExcelImporter @Inject constructor(
                 return result
             }
 
-            val headers = parseLine(firstLine)
+            // 自动找到包含"姓名"的行作为表头
+            var headerRowIndex = -1
+            var headers = listOf<String>()
+
+            for (i in 0 until minOf(10, lines.size)) {
+                val rowHeaders = parseLine(lines[i])
+
+                android.util.Log.d("ExcelImport", "CSV 第${i + 1}行: ${rowHeaders.take(5)}...")
+
+                if (rowHeaders.contains("姓名")) {
+                    headerRowIndex = i
+                    headers = rowHeaders
+                    android.util.Log.d("ExcelImport", "CSV 找到表头在第 ${i + 1} 行")
+                    break
+                }
+            }
+
+            if (headerRowIndex == -1) {
+                headers = parseLine(lines.first())
+                android.util.Log.d("ExcelImport", "CSV 未找到包含'姓名'的行，使用第一行作为表头")
+            }
+
             if (!headers.contains("姓名"))
-                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确")
+                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headers.joinToString(", ")}")
 
             val nameIdx   = headers.indexOf("姓名")
             val genderIdx = headers.indexOf("性别")
@@ -394,7 +475,9 @@ class ExcelImporter @Inject constructor(
             val residents = mutableListOf<Resident>()
             var failedCount = 0
 
-            for (lineIndex in 1 until lines.size) {
+            android.util.Log.d("ExcelImport", "CSV 表头在第 ${headerRowIndex + 1} 行, 开始解析数据行")
+
+            for (lineIndex in (headerRowIndex + 1) until lines.size) {
                 val line = lines[lineIndex]
                 if (line.isBlank()) continue
                 val cols = parseLine(line)
