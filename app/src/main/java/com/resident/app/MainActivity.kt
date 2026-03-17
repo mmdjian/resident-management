@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import com.resident.app.data.export.ExcelExporter
 import com.resident.app.ui.navigation.NavGraph
 import com.resident.app.ui.theme.ResidentAppTheme
+import com.resident.app.ui.viewmodel.MemoViewModel
 import com.resident.app.ui.viewmodel.ResidentViewModel
 import com.resident.app.ui.viewmodel.StatisticsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
 
     private val residentViewModel: ResidentViewModel by viewModels()
     private val statisticsViewModel: StatisticsViewModel by viewModels()
+    private val memoViewModel: MemoViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         viewModel = residentViewModel,
                         statisticsViewModel = statisticsViewModel,
+                        memoViewModel = memoViewModel,
                         excelExporter = excelExporter
                     )
                 }

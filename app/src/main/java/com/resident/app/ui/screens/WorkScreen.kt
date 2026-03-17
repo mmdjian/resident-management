@@ -1,10 +1,14 @@
 package com.resident.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun WorkScreen() {
+fun WorkScreen(onMemoClick: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -51,6 +55,66 @@ fun WorkScreen() {
                     color = Color(0xFFB9F6CA),
                     fontSize = 15.sp,
                     letterSpacing = 2.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 工作备忘卡片
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clickable(onClick = onMemoClick),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF1B5E20)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "工作备忘",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
+                        Text(
+                            text = "记录待办事项，设置提醒",
+                            fontSize = 13.sp,
+                            color = Color(0xFF558B2F)
+                        )
+                    }
+                }
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = "备忘",
+                    tint = Color(0xFF1B5E20),
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

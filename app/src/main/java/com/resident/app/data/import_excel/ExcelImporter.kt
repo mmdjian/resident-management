@@ -284,7 +284,7 @@ class ExcelImporter @Inject constructor(
 
             // 自动找到包含"姓名"的行作为表头
             var headerRowIndex = -1
-            var headerList = listOf<String>()
+            var headerMap = mapOf<Int, String>()  // 改用 Map 保存表头，key 是实际列索引
 
             for (i in 0 until minOf(10, rowList.length)) {  // 只检查前10行，避免遍历整个大文件
                 val row = rowList.item(i) as Element
@@ -297,13 +297,12 @@ class ExcelImporter @Inject constructor(
                     cellMap[col] = getCellValue(cell).trim()
                 }
 
-                val headers = cellMap.values.toList()
-                android.util.Log.d("ExcelImport", "第${i + 1}行内容: ${headers.take(5)}...")
+                android.util.Log.d("ExcelImport", "第${i + 1}行内容: ${cellMap.values.take(5)}, cellMap keys: ${cellMap.keys.toList()}")
 
-                if (headers.contains("姓名")) {
+                if (cellMap.values.contains("姓名")) {
                     headerRowIndex = i
-                    headerList = headers
-                    android.util.Log.d("ExcelImport", "找到表头在第 ${i + 1} 行")
+                    headerMap = cellMap.toMap()
+                    android.util.Log.d("ExcelImport", "找到表头在第 ${i + 1} 行, headerMap: $headerMap")
                     break
                 }
             }
@@ -318,24 +317,28 @@ class ExcelImporter @Inject constructor(
                     val col = colIndex(cell.getAttribute("r").takeWhile { it.isLetter() })
                     cellMap[col] = getCellValue(cell).trim()
                 }
-                headerList = cellMap.values.toList()
-                android.util.Log.d("ExcelImport", "未找到包含'姓名'的行，使用第一行作为表头")
+                headerMap = cellMap.toMap()
+                android.util.Log.d("ExcelImport", "未找到包含'姓名'的行，使用第一行作为表头, headerMap: $headerMap")
             }
 
-            android.util.Log.d("ExcelImport", "最终表头列表: $headerList")
-            if (!headerList.contains("姓名"))
-                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headerList.joinToString(", ")}")
+            android.util.Log.d("ExcelImport", "最终表头映射: $headerMap")
+            if (!headerMap.values.contains("姓名"))
+                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headerMap.values.joinToString(", ")}")
 
-            val nameIdx   = headerList.indexOf("姓名")
-            val genderIdx = headerList.indexOf("性别")
-            val birthIdx  = maxOf(headerList.indexOf("出生年月日"), headerList.indexOf("出生日期"))
-            val ageIdx    = headerList.indexOf("年龄")
-            val eduIdx    = maxOf(headerList.indexOf("受教育水平"), headerList.indexOf("学历"))
-            val occupIdx  = headerList.indexOf("政治面貌")
-            val phoneIdx  = maxOf(headerList.indexOf("电话"), headerList.indexOf("手机"))
-            val addrIdx   = maxOf(headerList.indexOf("地址"), headerList.indexOf("住址"))
-            val customFieldIndices = headerList.mapIndexedNotNull { i, h ->
-                if (h.isNotEmpty() && h !in knownHeaders) i to h else null
+            // 使用列名查找实际列索引
+            val nameIdx   = headerMap.entries.find { it.value == "姓名" }?.key ?: -1
+            val genderIdx = headerMap.entries.find { it.value == "性别" }?.key ?: -1
+            val birthIdx  = headerMap.entries.find { it.value in listOf("出生年月日", "出生日期") }?.key ?: -1
+            val ageIdx    = headerMap.entries.find { it.value == "年龄" }?.key ?: -1
+            val eduIdx    = headerMap.entries.find { it.value in listOf("受教育水平", "学历") }?.key ?: -1
+            val occupIdx  = headerMap.entries.find { it.value == "政治面貌" }?.key ?: -1
+            val phoneIdx  = headerMap.entries.find { it.value in listOf("电话", "手机") }?.key ?: -1
+            val addrIdx   = headerMap.entries.find { it.value in listOf("地址", "住址") }?.key ?: -1
+
+            android.util.Log.d("ExcelImport", "列索引映射 - 姓名:$nameIdx, 性别:$genderIdx, 出生:$birthIdx, 年龄:$ageIdx, 学历:$eduIdx, 政治面貌:$occupIdx, 电话:$phoneIdx, 地址:$addrIdx")
+
+            val customFieldIndices = headerMap.mapNotNull { (colIdx, headerName) ->
+                if (headerName.isNotEmpty() && headerName !in knownHeaders) colIdx to headerName else null
             }
 
             val residents = mutableListOf<Resident>()
@@ -359,9 +362,11 @@ class ExcelImporter @Inject constructor(
                 fun col(idx: Int) = if (idx < 0) "" else cellMap[idx] ?: ""
 
                 val name = col(nameIdx)
+                val phone = col(phoneIdx)
 
-                if (rowIndex <= 3) {
-                    android.util.Log.d("ExcelImport", "第${rowIndex + 1}行数据 - 姓名: $name, 性别: ${col(genderIdx)}, 地址: ${col(addrIdx)}")
+                if (rowIndex <= 3 || phone.isEmpty()) {
+                    android.util.Log.d("ExcelImport", "第${rowIndex + 1}行数据 - 姓名: $name, 性别: ${col(genderIdx)}, 电话: $phone (phoneIdx=$phoneIdx), 地址: ${col(addrIdx)}")
+                    android.util.Log.d("ExcelImport", "第${rowIndex + 1}行 cellMap 键值: ${cellMap.keys.toList()}")
                 }
 
                 if (name.isEmpty()) {

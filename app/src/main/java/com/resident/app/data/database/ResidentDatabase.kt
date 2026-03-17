@@ -4,15 +4,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.resident.app.data.entity.Memo
 import com.resident.app.data.entity.Resident
 
 @Database(
-    entities = [Resident::class],
-    version = 4,
+    entities = [Resident::class, Memo::class],
+    version = 5,
     exportSchema = false
 )
 abstract class ResidentDatabase : RoomDatabase() {
     abstract fun residentDao(): ResidentDao
+    abstract fun memoDao(): MemoDao
 
     companion object {
         @Volatile

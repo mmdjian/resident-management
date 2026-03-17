@@ -23,11 +23,13 @@ import com.resident.app.ui.viewmodel.ResidentViewModel
 @Composable
 fun ResidentListScreen(
     viewModel: ResidentViewModel,
+    memoViewModel: com.resident.app.ui.viewmodel.MemoViewModel,
     onAddClick: () -> Unit,
     onEditClick: (Resident) -> Unit,
     onStatisticsClick: () -> Unit,
     onExportClick: () -> Unit,
-    onImportClick: () -> Unit
+    onImportClick: () -> Unit,
+    onMemoClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(1) }  // 默认居民Tab
 
@@ -57,7 +59,7 @@ fun ResidentListScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             when (selectedTab) {
-                0 -> WorkScreen()
+                0 -> WorkScreen(onMemoClick = onMemoClick)
                 1 -> ResidentTab(
                     viewModel = viewModel,
                     onAddClick = onAddClick,

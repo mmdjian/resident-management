@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -30,6 +31,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.resident.app.data.security.BiometricAuthManager
+import kotlinx.coroutines.launch
 
 // 密码管理工具类，使用 SharedPreferences 持久化
 object AppPassword {
@@ -54,11 +59,25 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     var input by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf("") }
+    var isAuthenticating by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val activity = context as FragmentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // 检查是否启用指纹
+    val biometricEnabled = remember { BiometricAuthManager.isBiometricEnabled(context) }
+    val biometricAvailable = remember { BiometricAuthManager.isBiometricAvailable(context) }
+
+    LaunchedEffect(Unit) {
+        if (biometricEnabled && biometricAvailable) {
+            focusRequester.requestFocus()
+        } else {
+            focusRequester.requestFocus()
+        }
+    }
 
     fun tryLogin() {
         if (input == AppPassword.getPassword(context)) {
@@ -67,6 +86,28 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         } else {
             errorMsg = "密码错误，请重试"
             input = ""
+        }
+    }
+
+    fun tryBiometricLogin() {
+        if (!biometricAvailable || !biometricEnabled) return
+
+        scope.launch {
+            isAuthenticating = true
+            val success = BiometricAuthManager.authenticate(
+                activity = activity,
+                title = "指纹验证",
+                subtitle = "请验证指纹以登录"
+            )
+            isAuthenticating = false
+            if (success) {
+                errorMsg = ""
+                keyboard?.hide()
+                onLoginSuccess()
+            } else {
+                errorMsg = ""
+                // 指纹验证失败，不显示错误，让用户选择密码登录
+            }
         }
     }
 
@@ -189,7 +230,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        enabled = input.isNotEmpty(),
+                        enabled = input.isNotEmpty() && !isAuthenticating,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF1565C0)
@@ -200,6 +241,34 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
+                    }
+
+                    // 指纹登录按钮
+                    if (biometricAvailable && biometricEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { tryBiometricLogin() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            enabled = !isAuthenticating,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFF1565C0)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (isAuthenticating) "验证中..." else "指纹登录",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -219,7 +288,69 @@ fun ChangePasswordDialog(onDismiss: () -> Unit) {
     var showConfirm by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf("") }
     var successMsg by remember { mutableStateOf("") }
+    var showBiometricPrompt by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    // 检查是否支持指纹
+    val biometricAvailable = remember { BiometricAuthManager.isBiometricAvailable(context) }
+
+    fun handleConfirm() {
+        when {
+            oldPwd != AppPassword.getPassword(context) -> errorMsg = "当前密码错误"
+            newPwd.length < 4 -> errorMsg = "新密码至少4位"
+            newPwd != confirmPwd -> errorMsg = "两次密码不一致"
+            else -> {
+                AppPassword.setPassword(context, newPwd)
+                // 如果支持指纹，询问是否启用
+                if (biometricAvailable && !BiometricAuthManager.isBiometricEnabled(context)) {
+                    showBiometricPrompt = true
+                } else {
+                    successMsg = "密码修改成功！"
+                    errorMsg = ""
+                }
+            }
+        }
+    }
+
+    if (showBiometricPrompt) {
+        AlertDialog(
+            onDismissRequest = { showBiometricPrompt = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Fingerprint, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("启用指纹登录", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        "是否启用指纹登录？\n\n启用后，下次登录可以直接使用指纹验证，无需输入密码。",
+                        lineHeight = 22.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    BiometricAuthManager.setBiometricEnabled(context, true)
+                    showBiometricPrompt = false
+                    successMsg = "密码修改成功，已启用指纹登录！"
+                    errorMsg = ""
+                }) {
+                    Text("启用")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBiometricPrompt = false
+                    successMsg = "密码修改成功！"
+                    errorMsg = ""
+                }) {
+                    Text("暂不启用")
+                }
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -276,18 +407,7 @@ fun ChangePasswordDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = {
-                when {
-                    oldPwd != AppPassword.getPassword(context) -> errorMsg = "当前密码错误"
-                    newPwd.length < 4 -> errorMsg = "新密码至少4位"
-                    newPwd != confirmPwd -> errorMsg = "两次密码不一致"
-                    else -> {
-                        AppPassword.setPassword(context, newPwd)
-                        successMsg = "密码修改成功！"
-                        errorMsg = ""
-                    }
-                }
-            }) { Text("确认修改") }
+            Button(onClick = { handleConfirm() }) { Text("确认修改") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }

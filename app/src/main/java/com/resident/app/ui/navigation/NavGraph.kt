@@ -15,12 +15,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.resident.app.data.entity.Resident
 import com.resident.app.data.export.ExcelExporter
+import com.resident.app.ui.screens.AddEditMemoScreen
 import com.resident.app.ui.screens.AddEditResidentScreen
 import com.resident.app.ui.screens.ExportScreen
 import com.resident.app.ui.screens.ImportScreen
 import com.resident.app.ui.screens.LoginScreen
+import com.resident.app.ui.screens.MemoListScreen
 import com.resident.app.ui.screens.ResidentListScreen
 import com.resident.app.ui.screens.StatisticsScreen
+import com.resident.app.ui.viewmodel.MemoViewModel
 import com.resident.app.ui.viewmodel.ResidentViewModel
 import com.resident.app.ui.viewmodel.StatisticsViewModel
 
@@ -36,6 +39,11 @@ sealed class Screen(val route: String) {
     object Statistics : Screen("statistics")
     object Export : Screen("export")
     object Import : Screen("import")
+    object MemoList : Screen("memo_list")
+    object AddMemo : Screen("add_memo")
+    object EditMemo : Screen("edit_memo/{memoId}") {
+        fun createRoute(memoId: Long) = "edit_memo/$memoId"
+    }
 }
 
 @Composable
@@ -43,6 +51,7 @@ fun NavGraph(
     navController: NavHostController,
     viewModel: ResidentViewModel,
     statisticsViewModel: StatisticsViewModel,
+    memoViewModel: MemoViewModel,
     excelExporter: ExcelExporter
 ) {
     NavHost(
@@ -77,13 +86,15 @@ fun NavGraph(
             }
             ResidentListScreen(
                 viewModel = viewModel,
+                memoViewModel = memoViewModel,
                 onAddClick = { navController.navigate(Screen.AddResident.route) },
                 onEditClick = { resident ->
                     navController.navigate(Screen.EditResident.createRoute(resident.id))
                 },
                 onStatisticsClick = { navController.navigate(Screen.Statistics.route) },
                 onExportClick = { navController.navigate(Screen.Export.route) },
-                onImportClick = { navController.navigate(Screen.Import.route) }
+                onImportClick = { navController.navigate(Screen.Import.route) },
+                onMemoClick = { navController.navigate(Screen.MemoList.route) }
             )
         }
 
@@ -136,6 +147,32 @@ fun NavGraph(
             ImportScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.MemoList.route) {
+            MemoListScreen(
+                viewModel = memoViewModel,
+                onAddMemo = { navController.navigate(Screen.AddMemo.route) }
+            )
+        }
+
+        composable(Screen.AddMemo.route) {
+            AddEditMemoScreen(
+                viewModel = memoViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.EditMemo.route,
+            arguments = listOf(navArgument("memoId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val memoId = backStackEntry.arguments?.getLong("memoId") ?: return@composable
+            AddEditMemoScreen(
+                viewModel = memoViewModel,
+                onBack = { navController.popBackStack() },
+                memoId = memoId
             )
         }
     }
