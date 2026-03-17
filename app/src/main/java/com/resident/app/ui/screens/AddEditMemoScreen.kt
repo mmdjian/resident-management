@@ -14,9 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.resident.app.ui.viewmodel.MemoViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,6 +39,7 @@ fun AddEditMemoScreen(
 
     val isLoading by viewModel.isLoading.collectAsState()
     val message by viewModel.message.collectAsState()
+    val scope = rememberCoroutineScope()
 
     // 加载现有备忘数据
     LaunchedEffect(memoId) {
@@ -55,6 +58,16 @@ fun AddEditMemoScreen(
         if (message != null) {
             kotlinx.coroutines.delay(2000)
             viewModel.clearMessage()
+        }
+    }
+
+    // 检查是否需要显示即时提醒
+    val immediateMemos by viewModel.immediateMemos.collectAsState()
+
+    // 显示即时提醒
+    if (immediateMemos.isNotEmpty()) {
+        LaunchedEffect(Unit) {
+            // 可以在这里添加通知或弹窗提醒
         }
     }
 
@@ -77,7 +90,7 @@ fun AddEditMemoScreen(
                         onClick = {
                             if (title.isNotBlank() && content.isNotBlank()) {
                                 viewModel.insertMemo(title, content, isImmediate, remindTime)
-                                kotlinx.coroutines.launch {
+                                scope.launch {
                                     kotlinx.coroutines.delay(500)
                                     onBack()
                                 }

@@ -1,0 +1,23 @@
+feat: add memo reminders and fingerprint auth, fix Excel phone recognition
+
+1. Fix Excel phone field recognition
+   - Fixed XLSX parsing header column index mapping bug
+   - Use Map to save header column indices to avoid index mismatch
+   - Added detailed debug logs
+
+2. Add work memo reminder feature
+   - Created Memo entity, DAO, Repository, and ViewModel
+   - Implemented memo list page and add/edit pages
+   - Support immediate reminders (on app open) and delayed reminders (set specific datetime)
+   - Added memo entry point in work page
+
+3. Integrate fingerprint authentication
+   - Created BiometricAuthManager for fingerprint auth
+   - Login page supports fingerprint login (needs to be enabled first)
+   - Prompt to enable fingerprint after password change
+   - Use SharedPreferences to persist fingerprint enabled state
+
+4. Database upgrade
+   - Version upgraded from 4 to 5
+   - Added memos table for memo data
+   - Use fallbackToDestructiveMigration for migration
