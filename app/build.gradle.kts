@@ -131,15 +131,8 @@ dependencies {
     // 生物识别
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Excel 导入导出 - 使用 Android 专用 POI 移植版，同时支持 .xls 和 .xlsx，无依赖冲突
-    implementation("com.github.SUPERCILEX.poi-android:poi:3.17") {
-        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
-    }
-    implementation("com.github.SUPERCILEX.poi-android:poi-ooxml:3.17") {
-        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
-        exclude(group = "stax", module = "stax-api")
-        exclude(group = "xml-apis", module = "xml-apis")
-    }
+    // Excel 导入导出 - POI 3.17 仅处理 .xls；.xlsx 用原生 ZipInputStream+XML 解析，无额外依赖
+    implementation("org.apache.poi:poi:3.17")
 
     // Gson（自定义字段序列化）
     implementation("com.google.code.gson:gson:2.10.1")
