@@ -155,11 +155,28 @@ class ResidentViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                val fileName = uri.lastPathSegment ?: "未知文件"
+                val fileNameLower = fileName.lowercase()
+
+                android.util.Log.d("ExcelImport", "开始导入文件: $fileName (小写: $fileNameLower)")
+
+                // 尝试确定文件类型
+                val fileType = when {
+                    fileNameLower.endsWith(".xlsx") -> "XLSX"
+                    fileNameLower.endsWith(".xls") && !fileNameLower.endsWith(".xlsx") -> "XLS"
+                    fileNameLower.endsWith(".csv") -> "CSV"
+                    else -> "UNKNOWN"
+                }
+                android.util.Log.d("ExcelImport", "检测到的文件类型: $fileType")
+
                 val result = excelImporter.importFromExcel(uri)
+
+                android.util.Log.d("ExcelImport", "导入结果 - 成功: ${result.success}, 失败: ${result.failed}, 错误: ${result.errorMsg}")
+
                 if (result.errorMsg.isNotEmpty()) {
-                    _message.value = "导入失败：${result.errorMsg}"
+                    _message.value = "导入失败：${result.errorMsg}\n文件名: $fileName\n类型: $fileType"
                 } else if (result.residents.isEmpty()) {
-                    _message.value = "没有找到可导入的数据，请检查文件格式"
+                    _message.value = "没有找到可导入的数据，请检查文件格式\n文件名: $fileName\n可能原因：1) 没有姓名列 2) 所有行姓名为空"
                 } else {
                     result.residents.forEach { repository.insertResident(it) }
                     val msg = buildString {
@@ -169,7 +186,8 @@ class ResidentViewModel @Inject constructor(
                     _message.value = msg
                 }
             } catch (e: Exception) {
-                _message.value = "导入失败：${e.message}"
+                android.util.Log.e("ExcelImport", "导入异常", e)
+                _message.value = "导入失败：${e.message}\n原因: ${e.javaClass.simpleName}"
             } finally {
                 _isLoading.value = false
             }

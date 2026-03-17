@@ -33,21 +33,45 @@ class ExcelImporter @Inject constructor(
 
     fun importFromExcel(uri: Uri): ImportResult {
         return try {
-            val fileName = uri.lastPathSegment?.lowercase() ?: ""
+            val fileName = uri.lastPathSegment ?: "未知文件"
+            val fileNameLower = fileName.lowercase()
+
+            android.util.Log.d("ExcelImport", "文件名: $fileName, 小写: $fileNameLower")
+
             when {
-                fileName.endsWith(".csv") -> importCsv(uri)
-                fileName.endsWith(".xls") && !fileName.endsWith(".xlsx") -> importXls(uri)
-                fileName.endsWith(".xlsx") -> importXlsx(uri)
+                fileNameLower.endsWith(".csv") -> {
+                    android.util.Log.d("ExcelImport", "识别为 CSV 文件")
+                    importCsv(uri)
+                }
+                fileNameLower.endsWith(".xls") && !fileNameLower.endsWith(".xlsx") -> {
+                    android.util.Log.d("ExcelImport", "识别为 XLS 文件")
+                    importXls(uri)
+                }
+                fileNameLower.endsWith(".xlsx") -> {
+                    android.util.Log.d("ExcelImport", "识别为 XLSX 文件")
+                    importXlsx(uri)
+                }
                 else -> {
+                    android.util.Log.w("ExcelImport", "无法从文件名判断类型，尝试多种格式")
                     // 文件名不可靠时（部分文件管理器返回编码路径），先尝试 xlsx，失败再试 xls
-                    try { importXlsx(uri) }
+                    try {
+                        android.util.Log.d("ExcelImport", "尝试作为 XLSX 解析")
+                        importXlsx(uri)
+                    }
                     catch (e: Exception) {
-                        try { importXls(uri) }
-                        catch (e2: Exception) { importCsv(uri) }
+                        android.util.Log.d("ExcelImport", "XLSX 解析失败，尝试 XLS: ${e.message}")
+                        try {
+                            importXls(uri)
+                        }
+                        catch (e2: Exception) {
+                            android.util.Log.d("ExcelImport", "XLS 解析失败，尝试 CSV: ${e2.message}")
+                            importCsv(uri)
+                        }
                     }
                 }
             }
         } catch (e: Exception) {
+            android.util.Log.e("ExcelImport", "导入失败", e)
             ImportResult(0, 0, emptyList(), "解析失败：${e.message}")
         }
     }
@@ -149,21 +173,31 @@ class ExcelImporter @Inject constructor(
             ?: return ImportResult(0, 0, emptyList(), "无法读取文件")
 
         return try {
+            android.util.Log.d("ExcelImport", "开始解析 XLSX 文件")
             // xlsx 本质是 ZIP，解压获取 sharedStrings 和 sheet1
             val entries = mutableMapOf<String, ByteArray>()
             ZipInputStream(inputStream).use { zip ->
                 var entry = zip.nextEntry
+                var entryCount = 0
                 while (entry != null) {
+                    entryCount++
                     if (entry.name in listOf(
                             "xl/sharedStrings.xml",
                             "xl/worksheets/sheet1.xml"
                         )
                     ) {
                         entries[entry.name] = zip.readBytes()
+                        android.util.Log.d("ExcelImport", "找到条目: ${entry.name}, 大小: ${entries[entry.name]?.size} bytes")
                     }
                     entry = zip.nextEntry
                 }
+                android.util.Log.d("ExcelImport", "ZIP 包共 $entryCount 个条目")
             }
+
+            android.util.Log.d("ExcelImport", "已提取的条目: ${entries.keys}")
+
+            val sheetBytes = entries["xl/worksheets/sheet1.xml"]
+                ?: return ImportResult(0, 0, emptyList(), "无法读取工作表，文件可能已损坏")
 
             val sheetBytes = entries["xl/worksheets/sheet1.xml"]
                 ?: return ImportResult(0, 0, emptyList(), "无法读取工作表，文件可能已损坏")
@@ -171,10 +205,12 @@ class ExcelImporter @Inject constructor(
             // 解析共享字符串表（sharedStrings.xml）
             val sharedStrings = mutableListOf<String>()
             entries["xl/sharedStrings.xml"]?.let { ssBytes ->
+                android.util.Log.d("ExcelImport", "开始解析共享字符串表")
                 val doc = DocumentBuilderFactory.newInstance()
                     .newDocumentBuilder()
                     .parse(ssBytes.inputStream())
                 val siList = doc.getElementsByTagName("si")
+                android.util.Log.d("ExcelImport", "共享字符串表共 ${siList.length} 个字符串")
                 for (i in 0 until siList.length) {
                     val si = siList.item(i) as Element
                     // 拼接 <t> 标签内所有文字（处理富文本 <r><t>）
@@ -185,6 +221,7 @@ class ExcelImporter @Inject constructor(
                     }
                     sharedStrings.add(sb.toString())
                 }
+                android.util.Log.d("ExcelImport", "解析完成，前5个字符串: ${sharedStrings.take(5)}")
             }
 
             // 解析 sheet1.xml
@@ -231,8 +268,10 @@ class ExcelImporter @Inject constructor(
             }
 
             val headerList = headers.toList()
+            android.util.Log.d("ExcelImport", "表头列表: $headerList")
+            android.util.Log.d("ExcelImport", "表头是否包含姓名: ${headerList.contains("姓名")}")
             if (!headerList.contains("姓名"))
-                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确")
+                return ImportResult(0, 0, emptyList(), "未找到「姓名」列，请检查表头是否正确\n实际表头: ${headerList.joinToString(", ")}")
 
             val nameIdx   = headerList.indexOf("姓名")
             val genderIdx = headerList.indexOf("性别")
@@ -249,6 +288,8 @@ class ExcelImporter @Inject constructor(
             val residents = mutableListOf<Resident>()
             var failedCount = 0
 
+            android.util.Log.d("ExcelImport", "总行数: ${rowList.length}, 开始解析数据行")
+
             for (rowIndex in 1 until rowList.length) {
                 val row = rowList.item(rowIndex) as Element
                 val cells = row.getElementsByTagName("c")
@@ -264,7 +305,15 @@ class ExcelImporter @Inject constructor(
                 fun col(idx: Int) = if (idx < 0) "" else cellMap[idx] ?: ""
 
                 val name = col(nameIdx)
-                if (name.isEmpty()) { failedCount++; continue }
+
+                if (rowIndex <= 3) {
+                    android.util.Log.d("ExcelImport", "第${rowIndex + 1}行数据 - 姓名: $name, 性别: ${col(genderIdx)}, 地址: ${col(addrIdx)}")
+                }
+
+                if (name.isEmpty()) {
+                    android.util.Log.d("ExcelImport", "第${rowIndex + 1}行跳过（姓名为空）")
+                    failedCount++; continue
+                }
 
                 val birthDateRaw = col(birthIdx)
                 val birthDate = normalizeDateStr(birthDateRaw)
@@ -290,6 +339,8 @@ class ExcelImporter @Inject constructor(
                     notes = notesParts2.joinToString("；")
                 ))
             }
+
+            android.util.Log.d("ExcelImport", "解析完成 - 成功: ${residents.size}, 失败: $failedCount")
 
             ImportResult(residents.size, failedCount, residents)
         } finally {
