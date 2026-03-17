@@ -131,22 +131,14 @@ dependencies {
     // 生物识别
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Excel 导入导出 - Apache POI（.xls 和 .xlsx 双格式支持）
-    implementation("org.apache.poi:poi:3.17")
-    implementation("org.apache.poi:poi-ooxml:3.17") {
+    // Excel 导入导出 - 使用 Android 专用 POI 移植版，同时支持 .xls 和 .xlsx，无依赖冲突
+    implementation("com.github.SUPERCILEX.poi-android:poi:3.17") {
+        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
+    }
+    implementation("com.github.SUPERCILEX.poi-android:poi-ooxml:3.17") {
+        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
         exclude(group = "stax", module = "stax-api")
         exclude(group = "xml-apis", module = "xml-apis")
-        // poi-ooxml 和 poi-ooxml-schemas 都会传递依赖 xmlbeans，统一在此排除，单独声明一次
-        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
-    }
-    // poi-ooxml-schemas 也会重复拉取 xmlbeans，排除后单独保留一份
-    implementation("org.apache.poi:poi-ooxml-schemas:3.17") {
-        exclude(group = "stax", module = "stax-api")
-        exclude(group = "org.apache.xmlbeans", module = "xmlbeans")
-    }
-    // xmlbeans 只声明一次，避免重复
-    implementation("org.apache.xmlbeans:xmlbeans:2.6.0") {
-        exclude(group = "stax", module = "stax-api")
     }
 
     // Gson（自定义字段序列化）
