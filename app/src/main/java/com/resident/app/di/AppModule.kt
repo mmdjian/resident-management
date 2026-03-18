@@ -1,6 +1,7 @@
 package com.resident.app.di
 
 import android.content.Context
+import com.resident.app.data.database.MemoDao
 import com.resident.app.data.database.ResidentDao
 import com.resident.app.data.database.ResidentDatabase
 import dagger.Module
@@ -29,4 +30,11 @@ object AppModule {
     fun provideResidentDao(database: ResidentDatabase): ResidentDao {
         return database.residentDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideMemoDao(database: ResidentDatabase): MemoDao {
+        return database.memoDao()
+    }
 }
+
