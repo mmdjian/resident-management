@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.resident.app.data.entity.CustomFieldsConverter
 import com.resident.app.data.entity.Memo
 import com.resident.app.data.entity.Resident
 
@@ -12,6 +14,7 @@ import com.resident.app.data.entity.Resident
     version = 5,
     exportSchema = false
 )
+@TypeConverters(CustomFieldsConverter::class)
 abstract class ResidentDatabase : RoomDatabase() {
     abstract fun residentDao(): ResidentDao
     abstract fun memoDao(): MemoDao
