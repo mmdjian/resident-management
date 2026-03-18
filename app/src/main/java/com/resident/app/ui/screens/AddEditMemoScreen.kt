@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.rememberCoroutineScope
 import com.resident.app.ui.viewmodel.MemoViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -90,7 +92,7 @@ fun AddEditMemoScreen(
                             if (title.isNotBlank() && content.isNotBlank()) {
                                 viewModel.insertMemo(title, content, isImmediate, remindTime)
                                 scope.launch {
-                                    kotlinx.coroutines.delay(500)
+                                    delay(500)
                                     onBack()
                                 }
                             }

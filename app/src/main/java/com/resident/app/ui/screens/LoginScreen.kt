@@ -35,6 +35,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.resident.app.data.security.BiometricAuthManager
+import kotlinx.coroutines.launch
 
 // 密码管理工具类，使用 SharedPreferences 持久化
 object AppPassword {
